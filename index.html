@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>POS</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+body{margin:0;font-family:sans-serif;background:#f5f1e9}
+header{background:#c8b8a8;color:#fff;padding:10px;text-align:center;font-size:20px}
+.container{display:flex;height:calc(100vh - 50px)}
+.left{flex:3;padding:15px}
+.right{flex:1;background:#fff;padding:15px;border-left:1px solid #ccc}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.btn{background:#fff;border-radius:12px;padding:22px;font-size:22px;text-align:center;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15)}
+.btn:hover{background:#eef}
+.cart-item{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:6px 0}
+.total{font-size:36px;color:#c0392b;text-align:right}
+.count{text-align:right;font-size:18px}
+.action{margin-top:10px;padding:16px;font-size:18px;border:none;border-radius:10px;cursor:pointer;width:100%}
+.green{background:#6b8e23;color:#fff}
+.gray{background:#ccc}
+.red{background:#e74c3c;color:#fff}
+input{width:100%;padding:12px;font-size:16px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<header>二童一馬 POS</header>
+
+<div class="container">
+
+<div class="left">
+<input id="barcode" placeholder="掃描條碼" autofocus>
+<input type="file" accept=".xlsx,.xls" onchange="loadExcel(this)">
+<div class="grid" id="priceBtns"></div>
+</div>
+
+<div class="right">
+<div id="cart"></div>
+<div class="count">件數：<span id="count">0</span></div>
+<div class="total">$<span id="total">0</span></div>
+
+<button class="action gray" onclick="clearCart()">清空</button>
+<button class="action green" onclick="checkout()">結帳完成</button>
+</div>
+
+</div>
+
+<script>
+const prices=[100,150,190,200,250,290,300,350,390,400,450,490,500,550,590,600,650,690,700,790,800,890];
+let inventory=JSON.parse(localStorage.getItem("inventory")||"{}");
+let cart=[];
+
+const grid=document.getElementById("priceBtns");
+prices.forEach(p=>{
+  const b=document.createElement("div");
+  b.className="btn";
+  b.innerText="$"+p;
+  b.onclick=()=>addItem({name:"金額鍵",price:p});
+  grid.appendChild(b);
+});
+
+function addItem(item){
+  cart.push(item);
+  render();
+}
+
+function render(){
+  const c=document.getElementById("cart");
+  c.innerHTML="";
+  let total=0;
+  cart.forEach((i,idx)=>{
+    total+=i.price;
+    const d=document.createElement("div");
+    d.className="cart-item";
+    d.innerHTML=`${i.name} $${i.price} <span onclick="remove(${idx})" style="cursor:pointer">✕</span>`;
+    c.appendChild(d);
+  });
+  document.getElementById("total").innerText=total;
+  document.getElementById("count").innerText=cart.length;
+}
+
+function remove(i){
+  const item=cart[i];
+  if(item.barcode && inventory[item.barcode]){
+    inventory[item.barcode].stock++;
+  }
+  cart.splice(i,1);
+  save();
+  render();
+}
+
+function clearCart(){
+  cart.forEach(i=>{
+    if(i.barcode && inventory[i.barcode]){
+      inventory[i.barcode].stock++;
+    }
+  });
+  cart=[];
+  save();
+  render();
+}
+
+function checkout(){
+  if(cart.length===0)return;
+  cart=[];
+  save();
+  render();
+  alert("結帳完成");
+}
+
+function save(){
+  localStorage.setItem("inventory",JSON.stringify(inventory));
+}
+
+document.getElementById("barcode").addEventListener("change",e=>{
+  const code=e.target.value.trim();
+  e.target.value="";
+  if(inventory[code] && inventory[code].stock>0){
+    inventory[code].stock--;
+    addItem(inventory[code]);
+    save();
+  }else{
+    alert("無庫存或不存在");
+  }
+});
+
+function loadExcel(input){
+  const file=input.files[0];
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:"binary"});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(sheet);
+    data.forEach(r=>{
+      inventory[r.barcode]={
+        barcode:r.barcode,
+        name:r.name,
+        price:Number(r.price),
+        stock:Number(r.stock)
+      };
+    });
+    save();
+    alert("Excel 匯入完成");
+  };
+  reader.readAsBinaryString(file);
+}
+</script>
+
+</body>
+</html>
