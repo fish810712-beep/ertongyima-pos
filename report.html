@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>營收報表</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+body{
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI";
+  background:#f5f1ea;
+  margin:0;
+  padding:16px;
+}
+h1{margin:8px 0}
+button{
+  padding:10px 16px;
+  border:0;
+  border-radius:8px;
+  background:#6b8e23;
+  color:#fff;
+  font-size:16px;
+  cursor:pointer;
+}
+select{
+  padding:8px;
+  font-size:16px;
+}
+.card{
+  background:#fff;
+  border-radius:12px;
+  padding:16px;
+  margin:12px 0;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:right;
+}
+th:first-child,td:first-child{text-align:left}
+.total{
+  font-size:22px;
+  color:#b00000;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📊 營收報表</h1>
+
+<div class="card">
+  檢視模式：
+  <select id="mode" onchange="render()">
+    <option value="day">每日</option>
+    <option value="month">每月</option>
+  </select>
+  <button onclick="exportExcel()">匯出 Excel</button>
+</div>
+
+<div class="card">
+  <div>筆數：<span id="count">0</span></div>
+  <div class="total">總營收：$<span id="sum">0</span></div>
+</div>
+
+<div class="card">
+  <table id="table">
+    <thead>
+      <tr>
+        <th>日期</th>
+        <th>筆數</th>
+        <th>金額</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const sales = JSON.parse(localStorage.getItem("sales") || "[]");
+
+function group(mode){
+  const map = {};
+  sales.forEach(s=>{
+    const d = new Date(s.time);
+    const key = mode==="day"
+      ? d.toISOString().slice(0,10)
+      : d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+
+    const sum = s.items.reduce((a,i)=>a+i.price,0);
+    if(!map[key]) map[key]={count:0,sum:0};
+    map[key].count++;
+    map[key].sum+=sum;
+  });
+  return map;
+}
+
+function render(){
+  const mode = document.getElementById("mode").value;
+  const data = group(mode);
+  const tbody = document.querySelector("#table tbody");
+  tbody.innerHTML="";
+  let totalSum=0,totalCount=0;
+
+  Object.keys(data).sort().forEach(k=>{
+    const r=data[k];
+    totalSum+=r.sum;
+    totalCount+=r.count;
+    tbody.innerHTML+=`
+      <tr>
+        <td>${k}</td>
+        <td>${r.count}</td>
+        <td>$${r.sum}</td>
+      </tr>`;
+  });
+
+  document.getElementById("sum").textContent=totalSum;
+  document.getElementById("count").textContent=totalCount;
+}
+
+function exportExcel(){
+  const mode = document.getElementById("mode").value;
+  const data = group(mode);
+  const rows = [["日期","筆數","金額"]];
+  Object.keys(data).forEach(k=>{
+    rows.push([k,data[k].count,data[k].sum]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Report");
+  XLSX.writeFile(wb,`營收報表_${mode}.xlsx`);
+}
+
+render();
+</script>
+
+</body>
+</html>
