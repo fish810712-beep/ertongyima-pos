@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>簡易 POS</title>
+
+<style>
+body{
+  margin:0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:#f5f5f5;
+}
+header{
+  background:#cbbba7;
+  color:#333;
+  padding:10px;
+  text-align:center;
+  font-weight:bold;
+}
+.container{
+  display:flex;
+  height:calc(100vh - 50px);
+}
+.left{
+  flex:2;
+  padding:10px;
+  overflow:auto;
+}
+.right{
+  flex:1;
+  background:#fff;
+  padding:10px;
+  border-left:1px solid #ddd;
+  display:flex;
+  flex-direction:column;
+}
+.section{
+  margin-bottom:10px;
+}
+.section-title{
+  background:#eee;
+  padding:6px 10px;
+  border-radius:6px;
+  margin-bottom:6px;
+  font-weight:bold;
+}
+.products{
+  display:grid;
+  grid-template-columns: repeat(auto-fill,minmax(120px,1fr));
+  gap:10px;
+}
+.product{
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:10px;
+  padding:20px;
+  text-align:center;
+  font-size:22px;
+  cursor:pointer;
+}
+.product:hover{
+  background:#f0f0f0;
+}
+.cart{
+  flex:1;
+  overflow:auto;
+}
+.cart-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px dashed #ccc;
+  padding:6px 0;
+}
+.cart-item button{
+  background:#e74c3c;
+  color:#fff;
+  border:none;
+  border-radius:50%;
+  width:24px;
+  height:24px;
+  cursor:pointer;
+}
+.total{
+  text-align:right;
+  font-size:28px;
+  color:#c0392b;
+  margin:10px 0;
+}
+.count{
+  text-align:right;
+  color:#555;
+}
+.actions button{
+  width:100%;
+  padding:12px;
+  margin-top:6px;
+  font-size:18px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+.checkout{
+  background:#7cb342;
+  color:#fff;
+}
+.clear{
+  background:#999;
+  color:#fff;
+}
+</style>
+</head>
+
+<body>
+<header>POS</header>
+
+<div class="container">
+  <!-- 左側 商品 -->
+  <div class="left">
+    <div class="section">
+      <div class="section-title">商品（點金額加入）</div>
+      <div class="products">
+        <div class="product" onclick="add(50)">50</div>
+        <div class="product" onclick="add(100)">100</div>
+        <div class="product" onclick="add(150)">150</div>
+        <div class="product" onclick="add(200)">200</div>
+        <div class="product" onclick="add(250)">250</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右側 結帳 -->
+  <div class="right">
+    <div class="section-title">結帳清單</div>
+    <div class="cart" id="cart"></div>
+
+    <div class="count" id="count">件數：0</div>
+    <div class="total" id="total">$0</div>
+
+    <div class="actions">
+      <button class="checkout" onclick="checkout()">結帳完成</button>
+      <button class="clear" onclick="clearCart()">全部清空</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let cart = [];
+
+function add(price){
+  cart.push(price);
+  render();
+}
+
+function remove(index){
+  cart.splice(index,1);
+  render();
+}
+
+function clearCart(){
+  if(confirm("確定清空？")){
+    cart=[];
+    render();
+  }
+}
+
+function checkout(){
+  if(cart.length===0) return;
+  alert("結帳完成，金額 $" + cart.reduce((a,b)=>a+b,0));
+  cart=[];
+  render();
+}
+
+function render(){
+  const cartEl = document.getElementById("cart");
+  cartEl.innerHTML="";
+  let total=0;
+  cart.forEach((p,i)=>{
+    total+=p;
+    cartEl.innerHTML += `
+      <div class="cart-item">
+        <span>$${p}</span>
+        <button onclick="remove(${i})">×</button>
+      </div>
+    `;
+  });
+  document.getElementById("total").innerText = "$"+total;
+  document.getElementById("count").innerText = "件數："+cart.length;
+}
+</script>
+
+</body>
+</html>
